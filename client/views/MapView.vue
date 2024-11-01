@@ -1,32 +1,70 @@
+<template>
+  <div class="map-container">
+    <div class="sidebar">
+      <button @click="toggleObservations" class="toggle-button">
+        {{ showUserObservations ? 'Show All Observations' : 'Show My Observations' }}
+      </button>
+    </div>
+    <div id="map" class="google-map"></div> <!-- Container for Google Map -->
+  </div>
+</template>
+
 <script setup>
 import { onMounted, ref } from 'vue';
-import { GoogleMap, InfoWindow, Marker } from 'vue3-google-map';
 
 const center = { lat: 42.3601, lng: -71.0942 }; // Default center
-const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY; // Your API key
 const allObservations = ref([]); // All observations
 const userObservations = ref([]); // User's observations
 const filteredObservations = ref([]); // Currently displayed observations
 const showUserObservations = ref(false); // Toggle for user observations
-const mapOptions = {
-  disableDefaultUI: true,
-  zoomControl: false,
-  streetViewControl: false,
-  mapTypeControl: false,
-  fullscreenControl: false,
-  gestureHandling: 'greedy',
-  styles: [
-    {
-      featureType: "poi",
-      elementType: "labels",
-      stylers: [{ visibility: "off" }]
-    },
-    {
-      featureType: "transit",
-      elementType: "labels",
-      stylers: [{ visibility: "off" }]
-    }
-  ]
+let map; // Declare map variable
+let markers = []; // Array to hold markers
+
+// Initialize Google Map
+const initMap = () => {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: center,
+    zoom: 15,
+    disableDefaultUI: true,
+    gestureHandling: 'greedy',
+  });
+};
+
+// Clear existing markers from the map
+const clearMarkers = () => {
+  markers.forEach(marker => marker.setMap(null)); // Remove marker from the map
+  markers = []; // Clear the markers array
+};
+
+// Add markers based on filtered observations
+const addMarkers = () => {
+  clearMarkers(); // Clear existing markers
+  filteredObservations.value.forEach((observation) => {
+    const marker = new google.maps.Marker({
+      position: { lat: observation.location.latitude, lng: observation.location.longitude },
+      map: map,
+      title: observation.title,
+    });
+
+    markers.push(marker); // Add marker to markers array
+
+    // InfoWindow to show on marker click
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <div class="info-window-content">
+          <h3>${observation.title}</h3>
+          <p>${observation.content}</p>
+          <p><strong>Posted by:</strong> ${observation.username}</p>
+          <img src="${observation.imageUrl}" alt="Observation Image" 
+               style="width: 150px; height: 100px; margin-top: 0.5em; border-radius: 8px; object-fit: cover;" />
+        </div>
+      `,
+    });
+
+    marker.addListener("click", () => {
+      infoWindow.open(map, marker);
+    });
+  });
 };
 
 // Fetch all observations from your API
@@ -39,6 +77,7 @@ const fetchObservations = async () => {
     allObservations.value = await response.json();
     await addUsernameToObservations(allObservations.value); // Add usernames to observations
     filteredObservations.value = allObservations.value; // Initialize filtered observations
+    addMarkers(); // Add markers after fetching observations
   } catch (error) {
     console.error(error); // Handle the error as needed
   }
@@ -83,50 +122,28 @@ const addUsernameToObservations = async (observations) => {
 const toggleObservations = () => {
   showUserObservations.value = !showUserObservations.value;
   filteredObservations.value = showUserObservations.value ? userObservations.value : allObservations.value;
+  
+  // Re-initialize map markers when toggling
+  addMarkers();
 };
 
+// Load Google Maps script and initialize the map
 onMounted(async () => {
-  await fetchObservations();
-  await fetchUserObservations();
+  // Load Google Maps JavaScript API
+  const script = document.createElement('script');
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&callback=initMap`;
+  script.async = true;
+  script.defer = true;
+  document.head.appendChild(script);
+  script.onload = async () => {
+    initMap();
+    await fetchObservations();
+    await fetchUserObservations();
+  };
 });
 </script>
 
-<template>
-  <div class="map-container">
-    <div class="sidebar">
-      <button @click="toggleObservations" class="toggle-button">
-        {{ showUserObservations ? 'Show All Observations' : 'Show My Observations' }}
-      </button>
-    </div>
-    <GoogleMap
-      :api-key="apiKey"
-      style="width: 100%; height: 100%"
-      :center="center"
-      :zoom="15"
-      :options="mapOptions"
-    >
-      <Marker
-        v-for="observation in filteredObservations"
-        :key="observation.id"
-        :options="{ position: { lat: observation.location.latitude, lng: observation.location.longitude } }"
-        :title="observation.title"
-      >
-        <!-- Show InfoWindow only if it is the selected observation -->
-        <InfoWindow>
-          <div class="info-window-content">
-            <h3>{{ observation.title }}</h3>
-            <p>{{ observation.content }}</p>
-            <p><strong>Posted by:</strong> {{ observation.username }}</p> <!-- Display username -->
-            <img v-if="observation.imageUrl" :src="observation.imageUrl" alt="Observation Image" class="observation-image" />
-          </div>
-        </InfoWindow>
-      </Marker>
-    </GoogleMap>
-  </div>
-</template>
-
 <style scoped>
-
 .toggle-button {
   position: absolute;
   z-index: 1;
@@ -157,14 +174,12 @@ onMounted(async () => {
   z-index: 0;
 }
 
-.info-window-content {
-  max-width: 200px;
+.google-map {
+  height: 100%;
+  width: 100%;
 }
 
-.observation-image {
-  width: 100%;
-  height: auto;
-  margin-top: 0.5em;
-  border-radius: 8px;
+.info-window-content {
+  max-width: 200px;
 }
 </style>
