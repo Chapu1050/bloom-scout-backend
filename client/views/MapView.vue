@@ -9,20 +9,34 @@
   </div>
 </template>
 
-<script setup>
+<reference types="vite/client" />
+
+
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
+interface Observation {
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+  title: string;
+  content: string;
+  userId: string;
+  imageUrl: string;
+  username?: string; // Optional, as it will be added later
+}
 
 const center = { lat: 42.3601, lng: -71.0942 }; // Default center
-const allObservations = ref([]); // All observations
-const userObservations = ref([]); // User's observations
-const filteredObservations = ref([]); // Currently displayed observations
+const allObservations = ref<Observation[]>([]); // All observations
+const userObservations = ref<Observation[]>([]); // User's observations
+const filteredObservations = ref<Observation[]>([]); // Currently displayed observations
 const showUserObservations = ref(false); // Toggle for user observations
-let map; // Declare map variable
-let markers = []; // Array to hold markers
+let map: google.maps.Map | undefined; // Declare map variable with type
+let markers: google.maps.Marker[] = []; // Array to hold markers
 
 // Initialize Google Map
 const initMap = () => {
-  map = new google.maps.Map(document.getElementById("map"), {
+  map = new google.maps.Map(document.getElementById("map") as HTMLElement, {
     center: center,
     zoom: 15,
     disableDefaultUI: true,
@@ -54,7 +68,7 @@ const addMarkers = () => {
         <div class="info-window-content">
           <h3>${observation.title}</h3>
           <p>${observation.content}</p>
-          <p><strong>Posted by:</strong> ${observation.username}</p>
+          <p><strong>Posted by:</strong> ${observation.username || 'Unknown'}</p>
           <img src="${observation.imageUrl}" alt="Observation Image" 
                style="width: 150px; height: 100px; margin-top: 0.5em; border-radius: 8px; object-fit: cover;" />
         </div>
@@ -83,7 +97,8 @@ const fetchObservations = async () => {
   }
 };
 
-const fetchUsernameFromId = async (id) => {
+// Fetch username from user ID
+const fetchUsernameFromId = async (id: string): Promise<string> => {
   try {
     const response = await fetch(`/api/username/${id}`); // Update with your actual API endpoint
     if (!response.ok) {
@@ -112,7 +127,7 @@ const fetchUserObservations = async () => {
 };
 
 // Fetch username for each observation and add it to the observation
-const addUsernameToObservations = async (observations) => {
+const addUsernameToObservations = async (observations: Observation[]) => {
   for (const observation of observations) {
     observation.username = await fetchUsernameFromId(observation.userId);
   }
@@ -122,7 +137,7 @@ const addUsernameToObservations = async (observations) => {
 const toggleObservations = () => {
   showUserObservations.value = !showUserObservations.value;
   filteredObservations.value = showUserObservations.value ? userObservations.value : allObservations.value;
-  
+
   // Re-initialize map markers when toggling
   addMarkers();
 };
@@ -131,7 +146,7 @@ const toggleObservations = () => {
 onMounted(async () => {
   // Load Google Maps JavaScript API
   const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&callback=initMap`;
+  script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAPXmxyv4aAVoGAksTMoqkF-YxTqWcBalw&callback=initMap`;
   script.async = true;
   script.defer = true;
   document.head.appendChild(script);
