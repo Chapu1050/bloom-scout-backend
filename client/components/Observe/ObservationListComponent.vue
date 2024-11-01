@@ -30,7 +30,7 @@ onMounted(() => {
         :key="observation.id"
         :observation="observation"
       />
-      <p v-if="!observations.length">No observations found.</p>
+      <p v-if="!observations.length" class="text-none">No observations found.</p>
     </div>
 </template>
 
@@ -39,5 +39,15 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.text-none {
+  background-color: white;
+  border-radius: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 1em;
+  width: 70%;
 }
 </style>

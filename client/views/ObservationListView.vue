@@ -3,7 +3,7 @@
     <h1>Your Observations</h1>
     <ObservationListComponent :observations="observations" />
     <p v-if="loaded && observations.length === 0">
-      No observations found. Redirecting to <router-link to="/make-observation">Make Observation</router-link>...
+      
     </p>
     <p v-else-if="!loaded">Loading...</p>
   </section>
