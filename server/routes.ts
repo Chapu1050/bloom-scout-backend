@@ -31,6 +31,16 @@ class Routes {
     return await Authing.getUserById(user);
   }
 
+  @Router.get("/username/:id")
+  @Router.validate(z.object({ id: z.string().length(24) })) // Assuming ObjectId is 24 characters long
+  async getUsernameById(id: string) {
+    const user = await Authing.getUserById(new ObjectId(id));
+    if (!user) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+    return { username: user.username };
+  }
+
   @Router.get("/users")
   async getUsers() {
     return await Authing.getUsers();

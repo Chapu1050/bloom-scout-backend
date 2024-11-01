@@ -4,6 +4,7 @@ import { fetchy } from "../../utils/fetchy";
 
 // Reactive state variables
 const observationType = ref("organism"); // Default to organism
+const title = ref(""); // New title field
 const description = ref(""); // Flat description field
 const latitude = ref("");
 const longitude = ref("");
@@ -11,6 +12,7 @@ const imageUrl = ref(""); // Optional image URL
 const emit = defineEmits(["refreshObservations"]);
 
 const createObservation = async () => {
+  console.log("Sending title:", title.value);
   console.log("Sending description:", description.value);
   console.log("Sending location:", {
     latitude: parseFloat(latitude.value),
@@ -19,7 +21,7 @@ const createObservation = async () => {
 
   // Prepare the body for the fetch request
   const body = {
-    title: observationType.value === "organism" ? "Organism Observation" : "Structure Observation", // Example title based on observation type
+    title: title.value, // Include title in the body
     description: description.value, // Send the flat description
     latitude: parseFloat(latitude.value), // Send latitude
     longitude: parseFloat(longitude.value), // Send longitude
@@ -42,16 +44,28 @@ const createObservation = async () => {
 // Clear the form inputs
 const emptyForm = () => {
   observationType.value = "organism"; // Reset to default
+  title.value = ""; // Clear title
   description.value = ""; // Clear description
   latitude.value = "";
   longitude.value = "";
   imageUrl.value = ""; // Clear image URL
 };
 
+
+
 </script>
 
 <template>
   <form @submit.prevent="createObservation">
+    <label for="title">Title:</label>
+    <input
+      type="text"
+      v-model="title"
+      id="title"
+      placeholder="Enter observation title"
+      required
+    />
+
     <label for="observationType">Observation Type:</label>
     <select v-model="observationType" id="observationType" required>
       <option value="organism">Organism</option>
